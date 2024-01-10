@@ -59,7 +59,7 @@ def main():
     dqn = DQN(n_observations, n_actions)
     dqn.qnet.train()
     return_list = []
-    for i in range(1000):
+    for i in range(65000):
         episode_reward = 0
         episode_length = 0
         print(f"Episode:{i} ")
@@ -74,8 +74,8 @@ def main():
             episode_reward += reward
             episode_length += 1
             state = next_state
-            if len(buffer) > 100:
-                dqn.learn(32)
+            if len(buffer) > 10000:
+                dqn.learn(64)
             if done==True:
                 break
         if i%10 == 0:
