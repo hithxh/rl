@@ -3,4 +3,4 @@
 - dqn
 - a2c
 - pointer networks
-- attention model
+- am
