@@ -7,6 +7,7 @@ from collections import deque
 import random
 import numpy as np
 import matplotlib.pyplot as plt
+
 buffer = deque(maxlen=1000)
 class QNet(nn.Module):
     def __init__(self, n_observations, n_actions):
@@ -26,9 +27,10 @@ class DQN(nn.Module):
         self.qnet = QNet(n_observations, n_actions)
         self.target_qnet = QNet(n_observations, n_actions)
         self.target_qnet.load_state_dict(self.qnet.state_dict())
-        self.optimizer = optim.Adam(self.qnet.parameters(), lr=0.001)
+        self.optimizer = optim.Adam(self.qnet.parameters(), lr=0.01)
+
     def get_action(self, state):
-        if random.random() < 0.8:
+        if random.random() < 0.7:
             qvalues = self.qnet(state)
             action = qvalues.argmax().item()
         else:
@@ -58,7 +60,7 @@ def main():
     dqn = DQN(n_observations, n_actions)
     dqn.qnet.train()
     return_list = []
-    for i in range(65000):
+    for i in range(1000):
         episode_reward = 0
         episode_length = 0
         print(f"Episode:{i} ")
@@ -73,12 +75,12 @@ def main():
             episode_reward += reward
             episode_length += 1
             state = next_state
-            if len(buffer) > 10000:
+            if len(buffer) > 64:
                 dqn.learn(64)
-            if done==True:
+            if done:
                 break
-        if i%10 == 0:
-            dqn.target_qnet.load_state_dict(dqn.qnet.state_dict())
+        # if i%10 == 0:
+        dqn.target_qnet.load_state_dict(dqn.qnet.state_dict())
         return_list.append(episode_reward)
         print(f"Episode reward:{episode_reward}, Episode length:{episode_length}")
     episodes_list = list(range(len(return_list)))
