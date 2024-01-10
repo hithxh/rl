@@ -6,9 +6,8 @@ import torch.nn.functional as F
 from collections import deque
 import random
 import numpy as np
-buffer = deque(maxlen=1000)
 import matplotlib.pyplot as plt
-
+buffer = deque(maxlen=1000)
 class QNet(nn.Module):
     def __init__(self, n_observations, n_actions):
         super(QNet, self).__init__()
