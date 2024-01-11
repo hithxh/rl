@@ -67,8 +67,9 @@ class DQN(nn.Module):
 def train(args, env, agent):
     agent.qnet.train()
     return_list = []
-    episode_reward = 0
+    
     for i in range(args.episodes):
+        episode_reward = 0
         state,_ = env.reset()
         state = torch.tensor(state, dtype=torch.float32).unsqueeze(0)
         while True:
@@ -77,16 +78,16 @@ def train(args, env, agent):
             done = terminated or truncated
             next_state = torch.tensor(next_state, dtype=torch.float32).unsqueeze(0)
             buffer.append((state, action, reward, next_state, done))
-            agent.learn(args.batch_size)
             episode_reward += reward
             state = next_state
             if done:
                 break
+        agent.learn(args.batch_size)
         if i%10 == 0:
             agent.target_qnet.load_state_dict(agent.qnet.state_dict())
-        mean_reward = episode_reward/(i+1)
-        return_list.append(mean_reward)
-        print(f"Episode{i+1} reward:{mean_reward}")
+        # mean_reward = episode_reward/(i+1)
+        return_list.append(episode_reward)
+        print(f"Episode{i+1} reward:{episode_reward}")
     episodes_list = list(range(len(return_list)))
     plt.plot(episodes_list, return_list)
     plt.xlabel('Episodes')
@@ -96,7 +97,7 @@ def train(args, env, agent):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--episodes', type=int,default=1000,help='训练次数')
+    parser.add_argument('--episodes', type=int,default=3000,help='训练次数')
     parser.add_argument('--batch_size', type=int,default=64,help='batch_size')
     args = parser.parse_args()
     env = gym.make("CartPole-v1")
