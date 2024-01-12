@@ -50,16 +50,47 @@ class ActorCritic(nn.Module):
         action = m.sample()
         logp_action = m.log_prob(action)
         return action, logp_action
+    
+    def compute_value_loss(self, bs, blogp_a, br, bd, bns):
+        # 目标价值。
+        with torch.no_grad():
+            target_value = br + self.args.discount * torch.logical_not(bd) * self.V_target(bns).squeeze()
+
+        # 计算value loss。
+        value_loss = F.mse_loss(self.V(bs).squeeze(), target_value)
+        return value_loss
+
+    def compute_policy_loss(self, bs, blogp_a, br, bd, bns):
+        # 建议对比08_a2c.py，比较二者的差异。
+        with torch.no_grad():
+            value = self.V(bs).squeeze()
+
+        policy_loss = 0
+        for i, logp_a in enumerate(blogp_a):
+            policy_loss += -logp_a * value[i]
+        policy_loss = policy_loss.mean()
+        return policy_loss
+
+    def soft_update(self, tau=0.01):
+        def soft_update_(target, source, tau_=0.01):
+            for target_param, param in zip(target.parameters(), source.parameters()):
+                target_param.data.copy_(target_param.data * (1.0 - tau_) + param.data * tau_)
+
+        soft_update_(self.V_target, self.V, tau)
+
     def update(self,batch):
         if len(buffer) < batch:
             return
         transitions = random.sample(buffer, batch)
-        state, action, reward, next_state, done = zip(*transitions)
+        state, action, logp_action, reward, next_state, done = zip(*transitions)
         state = torch.cat(state)
         action = torch.tensor(action)
+        logp_action = torch.cat(logp_action)
         reward = torch.tensor(reward)
         next_state = torch.cat(next_state)
         done = torch.tensor(done,dtype=torch.bool)
+        
+        
         # 预测的当前时刻的state_value
         td_value = self.critic(state)
         # 目标的当前时刻的state_value
@@ -90,11 +121,11 @@ def train(args, env, agent):
         state, _ = env.reset()
         state = torch.tensor(state, dtype=torch.float32).unsqueeze(0)
         while True:
-            action, _ = agent.get_action(state)
+            action, logp_action = agent.get_action(state)
             next_state, reward, terminated, truncated, _ = env.step(action.item())
             done = terminated or truncated
             next_state = torch.tensor(next_state, dtype=torch.float32).unsqueeze(0)
-            buffer.append((state, action, reward, next_state, done))
+            buffer.append((state, action, logp_action,reward, next_state, done))
             state = next_state
             episode_return += reward
             if done:
